@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>AKIHO Music</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- タブナビゲーション -->
+  <nav class="tab-nav">
+    <button class="tab-btn active" data-tab="player">
+      <!-- headphones -->
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;display:inline-block;vertical-align:-4px;margin-right:5px;"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3z"/><path d="M3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>プレイヤー
+    </button>
+    <button class="tab-btn" data-tab="library">
+      <!-- music notes -->
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;display:inline-block;vertical-align:-4px;margin-right:5px;"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>ライブラリ
+    </button>
+    <button class="tab-btn" data-tab="playlist">
+      <!-- list music -->
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;display:inline-block;vertical-align:-4px;margin-right:5px;"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>プレイリスト
+    </button>
+  </nav>
+
+  <!-- ===== プレイヤータブ ===== -->
+  <section id="tab-player" class="tab-content active">
+
+    <!-- アルバムアート + 曲情報 -->
+    <div class="now-playing">
+      <div class="album-art" id="albumArt">
+        <div class="album-art-placeholder">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+        </div>
+        <img id="albumArtImg" style="display:none;" alt="アルバムアート">
+      </div>
+
+      <div class="track-info">
+        <div class="track-title-wrap">
+          <div class="track-title" id="trackTitle" title="タップして曲名を編集">曲を選んでください</div>
+          <button class="edit-title-btn" id="btnEditTitle" title="曲名を編集">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+        </div>
+        <div class="track-album" id="trackAlbum">—</div>
+        <div class="track-artist" id="trackArtist">—</div>
+      </div>
+    </div>
+
+    <!-- 波形 + シーク -->
+    <div class="seek-area">
+      <span class="time-current" id="timeCurrent">0:00</span>
+      <div class="waveform-wrap" id="waveformWrap">
+        <canvas id="waveformCanvas" class="waveform-canvas"></canvas>
+        <div class="waveform-cursor" id="waveformCursor"></div>
+        <div class="waveform-loading" id="waveformLoading" style="display:none;">
+          <div class="waveform-loading-bar"></div>
+        </div>
+      </div>
+      <span class="time-total" id="timeTotal">0:00</span>
+    </div>
+    <!-- 既存コードとの互換用（非表示） -->
+    <input type="range" id="seekBar" value="0" min="0" max="100" step="0.1" style="display:none;">
+
+    <!-- 再生コントロール（シャッフル・モード含む一行） -->
+    <div class="controls-main">
+      <!-- シャッフル -->
+      <button class="ctrl-btn ctrl-sub" id="btnShuffle" data-shuffle="false" title="シャッフル">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="16,3 21,3 21,8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21,16 21,21 16,21"/><line x1="15" y1="15" x2="21" y2="21"/></svg>
+      </button>
+      <!-- 前の曲 -->
+      <button class="ctrl-btn" id="btnPrev" title="前の曲">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="19,20 9,12 19,4" fill="currentColor" stroke="none"/><line x1="5" y1="19" x2="5" y2="5"/></svg>
+      </button>
+      <!-- 10秒戻る -->
+      <button class="ctrl-btn" id="btnRewind" title="10秒戻る">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="1,4 1,10 7,10"/><path d="M3.51 15a9 9 0 1 0 .49-3.84"/><text x="8.5" y="14.5" font-size="5.5" fill="currentColor" stroke="none" font-weight="bold" font-family="sans-serif">10</text></svg>
+      </button>
+      <!-- 再生/一時停止 -->
+      <button class="ctrl-btn ctrl-play" id="btnPlay" title="再生/一時停止">
+        <svg id="iconPlay" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
+        <svg id="iconPause" viewBox="0 0 24 24" fill="currentColor" style="display:none;"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
+      </button>
+      <!-- 10秒進む -->
+      <button class="ctrl-btn" id="btnForward" title="10秒進む">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="23,4 23,10 17,10"/><path d="M20.49 15a9 9 0 1 1-.49-3.84"/><text x="8.5" y="14.5" font-size="5.5" fill="currentColor" stroke="none" font-weight="bold" font-family="sans-serif">10</text></svg>
+      </button>
+      <!-- 次の曲 -->
+      <button class="ctrl-btn" id="btnNext" title="次の曲">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="5,4 15,12 5,20" fill="currentColor" stroke="none"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
+      </button>
+      <!-- 再生モード（タップで切り替え） -->
+      <button class="ctrl-btn ctrl-sub" id="btnPlayMode" title="再生モード">
+        <!-- sequential: 連続再生（最後で止まる） -->
+        <svg id="iconModeSequential" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="5,12 19,12"/><polyline points="15,8 19,12 15,16"/><line x1="19" y1="6" x2="19" y2="18" stroke-width="2"/></svg>
+        <!-- loopAll: 一周リピート -->
+        <svg id="iconModeLoopAll" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><polyline points="17,1 21,5 17,9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7,23 3,19 7,15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+        <!-- loopOne: 一曲リピート -->
+        <svg id="iconModeLoopOne" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><polyline points="17,1 21,5 17,9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7,23 3,19 7,15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/><text x="10.5" y="14.5" font-size="6" fill="currentColor" stroke="none" font-weight="bold" font-family="sans-serif">1</text></svg>
+        <!-- single: 一曲で止まる -->
+        <svg id="iconModeSingle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><polygon points="5,4 15,12 5,20" fill="currentColor" stroke="none"/><rect x="18" y="4" width="2.5" height="16" rx="1" fill="currentColor" stroke="none"/></svg>
+      </button>
+    </div>
+
+    <!-- スピードコントロール -->
+    <div class="controls-speed">
+      <div class="speed-label">スピード</div>
+      <div class="speed-custom">
+        <input type="range" id="speedSlider" min="50" max="200" value="100" step="1">
+        <div class="speed-input-wrap">
+          <input type="number" id="speedInput" min="50" max="200" value="100" class="speed-number-input">
+          <span class="speed-unit">%</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- フェードアウトタイマー -->
+    <div class="controls-fadeout">
+      <div class="fadeout-header">
+        <span class="fadeout-label">フェードアウト</span>
+        <span class="fadeout-status" id="fadeoutStatus"></span>
+      </div>
+      <div class="fadeout-body">
+        <input type="number" id="fadeMinutes" min="0" max="9" value="1" class="fadeout-num">
+        <span class="fadeout-sep">分</span>
+        <input type="number" id="fadeSeconds" min="0" max="59" value="30" class="fadeout-num">
+        <span class="fadeout-sep">秒後</span>
+        <button class="fadeout-toggle" id="btnFadeout">セット</button>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ===== ライブラリタブ ===== -->
+  <section id="tab-library" class="tab-content">
+
+    <!-- Drive未ログイン時 -->
+    <div id="driveLoginPanel" style="display:none;">
+      <div class="drive-login-card">
+        <div class="drive-login-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 1.2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.74a16 16 0 0 0 6 6l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+        </div>
+        <p class="drive-login-text">Googleドライブに接続すると<br>保存している音楽をすべて再生できます</p>
+        <button class="drive-login-btn" id="btnDriveLogin">
+          <svg viewBox="0 0 24 24" width="20" height="20" style="flex-shrink:0;"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+          Googleでログイン
+        </button>
+        <p class="drive-setup-note">※ 初回のみ Google Cloud の設定が必要です<br><a href="#" id="linkSetupGuide" style="color:var(--accent2);">設定手順を見る</a></p>
+      </div>
+    </div>
+
+    <!-- ログイン後ヘッダー -->
+    <div id="libraryHeader" class="library-header" style="display:none;">
+      <div class="drive-user-info" id="driveUserInfo">
+        <span id="driveUserName"></span>
+        <button class="drive-logout-btn" id="btnDriveLogout" title="ログアウト">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        </button>
+      </div>
+      <button class="reload-btn" id="btnDriveReload" title="再読み込み">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><polyline points="23,4 23,10 17,10"/><path d="M20.49 15a9 9 0 1 1-.49-3.84"/></svg>
+      </button>
+      <div class="library-view-toggle">
+        <button class="view-btn active" data-view="album">フォルダ</button>
+        <button class="view-btn" data-view="all">全曲</button>
+      </div>
+      <div class="library-sort-toggle">
+        <button class="sort-btn active" data-sort="name">名前順</button>
+        <button class="sort-btn" data-sort="date">追加順</button>
+      </div>
+    </div>
+
+    <!-- 読み込み中 -->
+    <div id="driveLoadingPanel" style="display:none;" class="loading-panel">
+      <div class="loading-spinner"></div>
+      <div class="loading-text">音楽ファイルを読み込んでいます…</div>
+    </div>
+
+    <div id="albumView" class="album-grid"></div>
+    <div id="allTracksView" class="track-list" style="display:none;"></div>
+
+  </section>
+
+  <!-- ===== プレイリストタブ ===== -->
+  <section id="tab-playlist" class="tab-content">
+
+    <div class="playlist-header">
+      <button class="create-playlist-btn" id="btnCreatePlaylist">＋ 新しいプレイリスト</button>
+      <button class="create-playlist-btn create-default-btn" id="btnCreateDefaultPlaylists">種目を一括作成</button>
+    </div>
+
+    <div id="playlistList" class="playlist-list"></div>
+
+    <div id="playlistDetail" class="playlist-detail" style="display:none;">
+      <div class="playlist-detail-header">
+        <button class="back-btn" id="btnPlaylistBack">← 戻る</button>
+        <span class="playlist-detail-name" id="playlistDetailName"></span>
+        <div class="playlist-detail-actions">
+          <button class="pl-sort-btn" id="btnPlSortAsc" title="短い順（昇順）">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5,12 12,5 19,12"/></svg>短
+          </button>
+          <button class="pl-sort-btn" id="btnPlSortDesc" title="長い順（降順）">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19,12 12,19 5,12"/></svg>長
+          </button>
+          <button class="play-all-btn" id="btnPlayPlaylist">▶ 再生</button>
+        </div>
+      </div>
+      <div id="playlistTracks" class="track-list sortable"></div>
+    </div>
+
+  </section>
+
+  <!-- モーダル: アルバム内曲リスト -->
+  <div class="modal-overlay" id="albumModal" style="display:none;">
+    <div class="modal">
+      <div class="modal-header">
+        <span id="modalAlbumName" class="modal-title"></span>
+        <button class="modal-select-btn" id="btnModalSelect">選択</button>
+        <button class="modal-close" id="btnAlbumModalClose">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div id="modalTrackList" class="track-list"></div>
+      <div class="modal-select-bar" id="modalSelectBar" style="display:none;">
+        <span id="modalSelectCount">0曲選択中</span>
+        <button class="modal-add-btn" id="btnModalAddToPlaylist">プレイリストに追加</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- モーダル: プレイリスト名入力 -->
+  <div class="modal-overlay" id="playlistModal" style="display:none;">
+    <div class="modal modal-small">
+      <div class="modal-header">
+        <span class="modal-title">プレイリスト名</span>
+        <button class="modal-close" id="btnPlaylistModalClose">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <input type="text" id="playlistNameInput" class="modal-input" placeholder="プレイリスト名を入力">
+      <div class="modal-actions">
+        <button class="modal-btn-cancel" id="btnPlaylistCancel">キャンセル</button>
+        <button class="modal-btn-ok" id="btnPlaylistOk">作成</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- モーダル: プレイリストに追加 -->
+  <div class="modal-overlay" id="addToPlaylistModal" style="display:none;">
+    <div class="modal modal-small">
+      <div class="modal-header">
+        <span class="modal-title">プレイリストに追加</span>
+        <button class="modal-close" id="btnAddToPlaylistClose">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div id="addToPlaylistList" class="playlist-select-list"></div>
+    </div>
+  </div>
+
+  <!-- モーダル: 曲名編集 -->
+  <div class="modal-overlay" id="renameModal" style="display:none;">
+    <div class="modal modal-small">
+      <div class="modal-header">
+        <span class="modal-title">曲名を変更</span>
+        <button class="modal-close" id="btnRenameModalClose">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <input type="text" id="renameInput" class="modal-input" placeholder="曲名を入力">
+      <div class="modal-actions">
+        <button class="modal-btn-cancel" id="btnRenameCancel">キャンセル</button>
+        <button class="modal-btn-ok" id="btnRenameOk">変更</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- コンテキストメニュー -->
+  <div class="ctx-menu" id="ctxMenu" style="display:none;">
+    <button class="ctx-menu-item" id="ctxRename">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      曲名を変更
+    </button>
+    <button class="ctx-menu-item" id="ctxAddToPlaylist">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      プレイリストに追加
+    </button>
+  </div>
+
+  <!-- 曲読み込み中オーバーレイ -->
+  <div class="track-loading-overlay" id="trackLoadingOverlay" style="display:none;">
+    <div class="track-loading-box">
+      <div class="loading-spinner"></div>
+      <div id="trackLoadingText" class="loading-text">読み込み中…</div>
+      <div class="loading-bar-wrap">
+        <div class="loading-bar" id="trackLoadingBar"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 設定ガイドモーダル -->
+  <div class="modal-overlay" id="setupGuideModal" style="display:none;">
+    <div class="modal" style="border-radius:22px;max-width:520px;margin:auto;">
+      <div class="modal-header">
+        <span class="modal-title">Google Cloud 設定手順</span>
+        <button class="modal-close" id="btnSetupGuideClose">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="setup-guide-body">
+        <ol class="setup-steps">
+          <li>
+            <strong>Google Cloud Console</strong> にアクセス<br>
+            <code>console.cloud.google.com</code>
+          </li>
+          <li>「新しいプロジェクト」を作成（名前は何でもOK）</li>
+          <li>左メニュー →「APIとサービス」→「ライブラリ」→ <strong>Google Drive API</strong> を検索して「有効にする」</li>
+          <li>「APIとサービス」→「OAuth 同意画面」→「外部」で作成、アプリ名を入力してスコープに <code>drive.readonly</code> と <code>drive.appdata</code> を追加</li>
+          <li>「認証情報」→「＋認証情報を作成」→「OAuth クライアントID」→ アプリの種類：<strong>ウェブアプリケーション</strong></li>
+          <li>「承認済みの JavaScript 生成元」に以下を追加：<br><code>http://localhost:8086</code></li>
+          <li>作成後に表示される <strong>クライアントID</strong> をコピー</li>
+          <li><code>gdrive.js</code> の1行目 <code>CLIENT_ID: 'YOUR_CLIENT_ID_HERE'</code> の <code>YOUR_CLIENT_ID_HERE</code> の部分を貼り付けて保存</li>
+        </ol>
+        <p style="margin-top:16px;font-size:13px;color:var(--text2);">設定は一度だけです。タブレット買い替え後は同じURLを開くだけで使えます。</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 通知トースト -->
+  <div class="toast" id="toast"></div>
+
+  <!-- audio要素 -->
+  <audio id="audioPlayer"></audio>
+
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.7/jsmediatags.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+  <script src="id3.js"></script>
+  <script src="gdrive.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

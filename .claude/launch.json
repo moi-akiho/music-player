@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "music-player",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["serve", "-p", "3456", "C:\\Users\\dance\\OneDrive\\デスクトップ\\AKIHO\\プロジェクト\\music-player"],
+      "port": 3456
+    }
+  ]
+}

@@ -1,7 +1,6 @@
 'use strict';
 
 // ===== Google Drive 連携モジュール =====
-// CLIENT_ID は Google Cloud Console で取得したものに差し替えてください
 const GDrive = {
   CLIENT_ID: '646110345005-mhc9hdgd81j5mmuovpoekkbislenmsl1.apps.googleusercontent.com',
 
@@ -29,30 +28,48 @@ const GDrive = {
         client_id: this.CLIENT_ID,
         scope: this.SCOPES,
         callback: (resp) => {
-          if (resp.error) return;
+          if (resp.error) {
+            this.isReady = false;
+            this._onSignInFail && this._onSignInFail();
+            return;
+          }
           this.accessToken = resp.access_token;
           this.isReady = true;
           this._onSignedIn && this._onSignedIn();
         },
       });
 
-      // 前回のトークンがキャッシュされていれば自動サインイン
-      const saved = sessionStorage.getItem('gd_token');
-      if (saved) {
-        this.accessToken = saved;
-        this.isReady = true;
-      }
-
       resolve(true);
     });
   },
 
-  // ===== サインイン =====
-  signIn(onSignedIn) {
-    this._onSignedIn = () => {
-      sessionStorage.setItem('gd_token', this.accessToken);
-      onSignedIn && onSignedIn();
+  // ===== 自動サインイン（UIなし）=====
+  // Googleにログイン済み＆過去に許可済みなら自動で接続する
+  trySilentSignIn(onSignedIn, onFail) {
+    let done = false;
+    const finish = (success) => {
+      if (done) return;
+      done = true;
+      success ? onSignedIn() : onFail();
     };
+
+    this._onSignedIn = () => finish(true);
+    this._onSignInFail = () => finish(false);
+
+    // 5秒以内にコールバックが来なければ失敗扱い
+    setTimeout(() => finish(false), 5000);
+
+    try {
+      this.tokenClient.requestAccessToken({ prompt: '' });
+    } catch {
+      finish(false);
+    }
+  },
+
+  // ===== 手動サインイン =====
+  signIn(onSignedIn) {
+    this._onSignedIn = onSignedIn;
+    this._onSignInFail = null;
     this.tokenClient.requestAccessToken({ prompt: '' });
   },
 
@@ -62,7 +79,6 @@ const GDrive = {
     }
     this.accessToken = null;
     this.isReady = false;
-    sessionStorage.removeItem('gd_token');
   },
 
   // ===== 音楽ファイル一覧取得 =====
@@ -89,23 +105,52 @@ const GDrive = {
       pageToken = data.nextPageToken || null;
     } while (pageToken);
 
-    return files; // [{ id, name, size, mimeType }, ...]
+    return files;
   },
 
-  // ===== フォルダIDからフォルダ名を一括取得 =====
-  async getFolderNames(folderIds) {
+  // ===== フォルダの2階層パスを取得（例: "ワルツ / 初級"）=====
+  async getFolderPaths(folderIds) {
     if (!folderIds.length) return {};
-    const names = {};
+
+    // 第1階層: 直接の親フォルダ
+    const folders = {};
     await Promise.all(folderIds.map(async id => {
       const res = await this._fetch(
-        `https://www.googleapis.com/drive/v3/files/${id}?fields=id,name`
+        `https://www.googleapis.com/drive/v3/files/${id}?fields=id,name,parents`
       );
       if (res.ok) {
         const data = await res.json();
-        names[id] = data.name;
+        folders[id] = { name: data.name, parentId: data.parents?.[0] || null };
       }
     }));
-    return names;
+
+    // 第2階層: 親の親フォルダ
+    const gpIds = [...new Set(
+      Object.values(folders).map(f => f.parentId).filter(Boolean)
+    )];
+    const grandparents = {};
+    await Promise.all(gpIds.map(async id => {
+      const res = await this._fetch(
+        `https://www.googleapis.com/drive/v3/files/${id}?fields=id,name,parents`
+      );
+      if (res.ok) {
+        const data = await res.json();
+        // parents が空 = Driveのルート（マイドライブ）なので表示しない
+        grandparents[id] = { name: data.name, isRoot: !data.parents?.length };
+      }
+    }));
+
+    // パスを組み立て
+    const paths = {};
+    for (const [id, folder] of Object.entries(folders)) {
+      const gp = folder.parentId ? grandparents[folder.parentId] : null;
+      if (gp && !gp.isRoot) {
+        paths[id] = `${gp.name} / ${folder.name}`;
+      } else {
+        paths[id] = folder.name;
+      }
+    }
+    return paths;
   },
 
   // ===== ファイルをBlobとして取得してBlobURLを返す =====
@@ -136,8 +181,6 @@ const GDrive = {
   async savePlaylistData(data) {
     const json = JSON.stringify(data);
     const blob = new Blob([json], { type: 'application/json' });
-
-    // 既存ファイルがあれば取得
     const existing = await this._findAppDataFile('playlists.json');
 
     if (existing) {
@@ -146,10 +189,7 @@ const GDrive = {
         { method: 'PATCH', body: blob }
       );
     } else {
-      const meta = JSON.stringify({
-        name: 'playlists.json',
-        parents: ['appDataFolder'],
-      });
+      const meta = JSON.stringify({ name: 'playlists.json', parents: ['appDataFolder'] });
       const form = new FormData();
       form.append('metadata', new Blob([meta], { type: 'application/json' }));
       form.append('file', blob);

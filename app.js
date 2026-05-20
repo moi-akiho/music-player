@@ -1023,11 +1023,11 @@ async function initDrive() {
 
   await GDrive.init();
 
-  if (GDrive.isReady) {
-    await onDriveSignedIn();
-  } else {
-    showDriveLogin();
-  }
+  // Googleにログイン済みなら自動接続を試みる（UIなし）
+  GDrive.trySilentSignIn(
+    () => onDriveSignedIn(),   // 成功 → 自動接続
+    () => showDriveLogin()     // 失敗 → ログインボタン表示
+  );
 }
 
 function showDriveLogin() {
@@ -1070,9 +1070,9 @@ async function onDriveSignedIn() {
     // Drive の音楽ファイル一覧取得
     const files = await GDrive.listMusicFiles();
 
-    // フォルダIDを収集してフォルダ名を一括取得
+    // フォルダIDを収集して2階層パスを取得（例: "ワルツ / 初級"）
     const folderIds = [...new Set(files.flatMap(f => f.parents || []))];
-    const folderNames = await GDrive.getFolderNames(folderIds);
+    const folderNames = await GDrive.getFolderPaths(folderIds);
 
     state.tracks = files.map(f => {
       const cached = getCachedMeta(f.id);

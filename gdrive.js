@@ -153,8 +153,21 @@ const GDrive = {
     return paths;
   },
 
-  // ===== ファイルをBlobとして取得してBlobURLを返す =====
+  // ===== ファイルをBlobとして取得してBlobURLを返す（キャッシュ対応）=====
+  CACHE_NAME: 'akiho-music-v1',
+
   async fetchAsBlobUrl(fileId, onProgress) {
+    // キャッシュを確認
+    try {
+      const cache = await caches.open(this.CACHE_NAME);
+      const cached = await cache.match(`https://drive-cache/${fileId}`);
+      if (cached) {
+        const blob = await cached.blob();
+        return URL.createObjectURL(blob);
+      }
+    } catch { /* キャッシュ非対応環境はスキップ */ }
+
+    // Driveから取得
     const res = await this._fetch(
       `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`
     );
@@ -174,7 +187,35 @@ const GDrive = {
     }
 
     const blob = new Blob(chunks);
+
+    // キャッシュに保存
+    try {
+      const cache = await caches.open(this.CACHE_NAME);
+      await cache.put(`https://drive-cache/${fileId}`, new Response(blob.slice()));
+    } catch { /* 容量不足などは無視 */ }
+
     return URL.createObjectURL(blob);
+  },
+
+  // ===== キャッシュをクリア =====
+  async clearCache() {
+    try {
+      await caches.delete(this.CACHE_NAME);
+      return true;
+    } catch {
+      return false;
+    }
+  },
+
+  // ===== キャッシュ済みファイル数を取得 =====
+  async getCacheCount() {
+    try {
+      const cache = await caches.open(this.CACHE_NAME);
+      const keys = await cache.keys();
+      return keys.length;
+    } catch {
+      return 0;
+    }
   },
 
   // ===== AppData にプレイリストを保存 =====

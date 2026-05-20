@@ -1130,6 +1130,15 @@ $('btnDriveReload').addEventListener('click', async () => {
   await onDriveSignedIn();
 });
 
+// キャッシュクリア
+$('btnClearCache').addEventListener('click', async () => {
+  const count = await GDrive.getCacheCount();
+  if (count === 0) { showToast('キャッシュはありません'); return; }
+  if (!confirm(`キャッシュされた${count}曲を削除しますか？\n次回再生時にまたダウンロードが必要になります。`)) return;
+  await GDrive.clearCache();
+  showToast('キャッシュをクリアしました');
+});
+
 // 設定ガイドモーダル
 $('linkSetupGuide').addEventListener('click', (e) => {
   e.preventDefault();

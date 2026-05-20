@@ -381,8 +381,30 @@ $('btnModalSelect').addEventListener('click', () => {
   $('btnModalSelect').classList.toggle('active', modalSelectMode);
   $('btnModalSelect').textContent = modalSelectMode ? 'キャンセル' : '選択';
   $('modalSelectBar').style.display = modalSelectMode ? 'flex' : 'none';
+  $('modalRangeWrap').style.display = modalSelectMode ? 'flex' : 'none';
   $('modalSelectCount').textContent = '0曲選択中';
   $('btnModalAddToPlaylist').disabled = true;
+  if (!modalSelectMode) {
+    $('rangeFrom').value = '';
+    $('rangeTo').value = '';
+  }
+  renderModalTrackList();
+});
+
+$('btnRangeSelect').addEventListener('click', () => {
+  const from = parseInt($('rangeFrom').value);
+  const to   = parseInt($('rangeTo').value);
+  const total = modalCurrentTracks.length;
+
+  if (isNaN(from) || isNaN(to)) { showToast('数値を入力してください'); return; }
+  const start = Math.max(1, Math.min(from, to));
+  const end   = Math.min(total, Math.max(from, to));
+
+  for (let i = start - 1; i < end; i++) {
+    modalSelectedIds.add(modalCurrentTracks[i].id);
+  }
+  $('modalSelectCount').textContent = `${modalSelectedIds.size}曲選択中`;
+  $('btnModalAddToPlaylist').disabled = modalSelectedIds.size === 0;
   renderModalTrackList();
 });
 

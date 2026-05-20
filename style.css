@@ -870,6 +870,43 @@ input[type="range"]::-webkit-slider-thumb {
   border-color: var(--accent2);
 }
 
+.modal-range-wrap {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 4px;
+}
+
+.modal-range-input {
+  width: 46px;
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
+  padding: 5px 2px;
+  -moz-appearance: textfield;
+}
+
+.modal-range-input::-webkit-inner-spin-button,
+.modal-range-input::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+.modal-range-sep {
+  font-size: 13px;
+  color: var(--text2);
+}
+
+.modal-range-btn {
+  padding: 5px 12px;
+  border-radius: 8px;
+  background: var(--accent2);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+}
+
 .modal-select-bar {
   display: flex;
   align-items: center;

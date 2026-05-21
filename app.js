@@ -1064,9 +1064,14 @@ function renderPlaylistTracks(pl) {
     animation: 150,
     ghostClass: 'sortable-ghost',
     onEnd(evt) {
-      const moved = pl.trackIds.splice(evt.oldIndex, 1)[0];
-      pl.trackIds.splice(evt.newIndex, 0, moved);
+      // displayIds（表示順）を正として並べ替え（クロージャ変数を直接更新）
+      const movedId = displayIds.splice(evt.oldIndex, 1)[0];
+      displayIds.splice(evt.newIndex, 0, movedId);
+      // pl.trackIds を新しい順序に確定して保存
+      pl.trackIds = [...displayIds];
       saveMeta();
+      // 曲番号を正しく更新するため再描画
+      renderPlaylistTracks(pl);
     },
   });
 }

@@ -189,6 +189,7 @@ const STORAGE_KEY = 'akiho_music_v1';
 
 function saveMeta() {
   const data = {
+    savedAt: Date.now(), // タイムスタンプ（Drive と localStorage どちらが新しいか判定用）
     playlists: state.playlists,
     tracksMeta: state.tracks.map(({ id, title, artist, album, picture, duration }) =>
       ({ id, title, artist, album, picture, duration })
@@ -583,6 +584,16 @@ function doRename() {
     $('trackTitle').textContent = newTitle;
   }
   renderLibrary();
+
+  // アルバムモーダルが開いていれば曲リストも再描画
+  if ($('albumModal').style.display === 'flex') {
+    renderModalTrackList();
+  }
+  // プレイリスト詳細が表示中なら再描画
+  if ($('playlistDetail').style.display !== 'none') {
+    const pl = state.playlists.find(p => p.id === state.currentPlaylistId);
+    if (pl) renderPlaylistTracks(pl);
+  }
 }
 
 // プレイヤー画面の曲名タップで編集
@@ -1159,7 +1170,20 @@ async function onDriveSignedIn() {
 
   try {
     // Drive からプレイリストデータ読み込み
-    const saved = await GDrive.loadPlaylistData();
+    const driveData = await GDrive.loadPlaylistData();
+
+    // ローカルと Drive を比較して「新しい方」を使う
+    // （Drive保存が遅れた場合にローカルの変更が消えるのを防ぐ）
+    let localData = null;
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) localData = JSON.parse(raw);
+    } catch { /* 無視 */ }
+
+    const driveTime = driveData?.savedAt || 0;
+    const localTime = localData?.savedAt || 0;
+    const saved = driveTime >= localTime ? driveData : localData;
+
     if (saved?.playlists) state.playlists = saved.playlists;
     if (saved?.tracksMeta) state._cachedMeta = saved.tracksMeta;
 

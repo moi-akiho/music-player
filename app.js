@@ -933,6 +933,8 @@ function renderPlaylistList() {
       if (e.target.closest('.playlist-item-del')) {
         if (confirm(`「${pl.name}」を削除しますか？`)) {
           state.playlists = state.playlists.filter(p => p.id !== pl.id);
+          // 削除したプレイリストが選択中だった場合はIDをリセット
+          if (state.currentPlaylistId === pl.id) state.currentPlaylistId = null;
           saveMeta();
           renderPlaylistList();
         }
@@ -945,6 +947,7 @@ function renderPlaylistList() {
 }
 
 let playlistSortMode = 'manual'; // 'manual' | 'asc' | 'desc'
+let _sortableInstance = null;   // Sortableインスタンスを保持（再描画前に破棄するため）
 
 $('btnPlSortAsc').addEventListener('click', () => {
   playlistSortMode = playlistSortMode === 'asc' ? 'manual' : 'asc';
@@ -1059,7 +1062,12 @@ function renderPlaylistTracks(pl) {
     container.appendChild(item);
   });
 
-  Sortable.create(container, {
+  // 前のSortableインスタンスを破棄してから新規作成（メモリリーク防止）
+  if (_sortableInstance) {
+    _sortableInstance.destroy();
+    _sortableInstance = null;
+  }
+  _sortableInstance = Sortable.create(container, {
     handle: '.drag-handle',
     animation: 150,
     ghostClass: 'sortable-ghost',

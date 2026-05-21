@@ -869,32 +869,10 @@ function setSpeed(spd) {
 }
 
 // ===== プレイリスト =====
-const DEFAULT_PLAYLISTS = [
-  '00 デモ', '01 ワルツ', '02 タンゴ', '03 ヴェニーズワルツ',
-  '04 スローフォックストロット', '05 クイックステップ',
-  '06 チャチャチャ', '07 サンバ', '08 ルンバ',
-  '09 パソドブレ', '10 ジャイブ', '11 パーティーミュージック',
-];
-
 $('btnCreatePlaylist').addEventListener('click', () => {
   $('playlistNameInput').value = '';
   $('playlistModal').style.display = 'flex';
   setTimeout(() => $('playlistNameInput').focus(), 100);
-});
-
-$('btnCreateDefaultPlaylists').addEventListener('click', () => {
-  const existing = state.playlists.map(p => p.name);
-  const toAdd = DEFAULT_PLAYLISTS.filter(name => !existing.includes(name));
-  if (!toAdd.length) {
-    showToast('種目プレイリストはすでに作成済みです');
-    return;
-  }
-  toAdd.forEach(name => {
-    state.playlists.push({ id: 'pl_' + Date.now() + '_' + Math.random().toString(36).slice(2), name, trackIds: [] });
-  });
-  saveMeta();
-  renderPlaylistList();
-  showToast(`${toAdd.length}個の種目プレイリストを作成しました`);
 });
 
 $('btnPlaylistModalClose').addEventListener('click', () => $('playlistModal').style.display = 'none');

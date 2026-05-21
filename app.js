@@ -10,7 +10,7 @@ const state = {
   queueIndex: -1,
   playMode: 'sequential', // sequential / single / loopAll / loopOne
   shuffle: false,
-  speed: 1.0,
+  speed: 0.98,
   isPlaying: false,
   ctxTargetId: null,
 };

@@ -1297,8 +1297,15 @@ loadMeta();
 renderPlaylistList();
 
 // Google APIの読み込み完了後にDrive初期化
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => setTimeout(initDrive, 500));
+// （async defer で読み込むため、onload コールバックで確実に呼ぶ）
+if (window._gsiReady || window.google) {
+  // すでに読み込み済みの場合はすぐ実行
+  initDrive();
 } else {
-  setTimeout(initDrive, 500);
+  // GSIスクリプトの onload で呼ばれる
+  window._onGsiReady = initDrive;
+  // 10秒でタイムアウト → ローカルモードへフォールバック
+  setTimeout(() => {
+    if (!window._gsiReady && !window.google) showLocalMode();
+  }, 10000);
 }

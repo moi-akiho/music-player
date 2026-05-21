@@ -361,7 +361,7 @@
   <!-- audio要素 -->
   <audio id="audioPlayer"></audio>
 
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="https://accounts.google.com/gsi/client" async defer onload="window._gsiReady=true; if(window._onGsiReady) window._onGsiReady();"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.7/jsmediatags.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
   <script src="id3.js"></script>

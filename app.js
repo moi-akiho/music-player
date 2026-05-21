@@ -329,6 +329,62 @@ document.querySelectorAll('.sort-btn').forEach(btn => {
   });
 });
 
+// ===== ライブラリ検索 =====
+let librarySearchQuery = '';
+
+function showLibrarySearch() {
+  $('librarySearchWrap').style.display = '';
+}
+
+$('librarySearchInput').addEventListener('input', () => {
+  librarySearchQuery = $('librarySearchInput').value.trim().toLowerCase();
+  $('btnLibrarySearchClear').style.display = librarySearchQuery ? '' : 'none';
+  applyLibrarySearch();
+});
+
+$('btnLibrarySearchClear').addEventListener('click', () => {
+  $('librarySearchInput').value = '';
+  librarySearchQuery = '';
+  $('btnLibrarySearchClear').style.display = 'none';
+  applyLibrarySearch();
+});
+
+function applyLibrarySearch() {
+  const q = librarySearchQuery;
+  const albumView = $('albumView');
+  const allView = $('allTracksView');
+  const searchView = $('searchResultsView');
+
+  if (!q) {
+    // 検索なし → 通常表示に戻す
+    searchView.style.display = 'none';
+    const activeView = document.querySelector('.view-btn.active')?.dataset.view;
+    albumView.style.display = activeView === 'all' ? 'none' : '';
+    allView.style.display = activeView === 'all' ? '' : 'none';
+    return;
+  }
+
+  // 検索あり → searchResultsViewに結果を表示
+  albumView.style.display = 'none';
+  allView.style.display = 'none';
+  searchView.style.display = '';
+  searchView.innerHTML = '';
+
+  const matched = state.tracks.filter(t =>
+    t.title.toLowerCase().includes(q) ||
+    (t.album || '').toLowerCase().includes(q)
+  );
+
+  if (!matched.length) {
+    searchView.innerHTML = `<div class="empty-state"><div class="empty-state-text">「${esc($('librarySearchInput').value)}」に一致する曲はありません</div></div>`;
+    return;
+  }
+
+  matched.forEach((track, i) => {
+    searchView.appendChild(makeTrackItem(track, i + 1, () => playOrLoad(track.id, matched.map(t => t.id))));
+  });
+}
+
 document.querySelectorAll('.view-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.view-btn').forEach(b => b.classList.toggle('active', b === btn));
@@ -907,6 +963,21 @@ $('btnPlSortDesc').addEventListener('click', () => {
   if (pl) renderPlaylistTracks(pl);
 });
 
+// ===== プレイリスト内検索 =====
+$('playlistSearchInput').addEventListener('input', () => {
+  const q = $('playlistSearchInput').value.trim();
+  $('btnPlaylistSearchClear').style.display = q ? '' : 'none';
+  const pl = state.playlists.find(p => p.id === state.currentPlaylistId);
+  if (pl) renderPlaylistTracks(pl);
+});
+
+$('btnPlaylistSearchClear').addEventListener('click', () => {
+  $('playlistSearchInput').value = '';
+  $('btnPlaylistSearchClear').style.display = 'none';
+  const pl = state.playlists.find(p => p.id === state.currentPlaylistId);
+  if (pl) renderPlaylistTracks(pl);
+});
+
 function openPlaylistDetail(plId) {
   const pl = state.playlists.find(p => p.id === plId);
   if (!pl) return;
@@ -914,6 +985,8 @@ function openPlaylistDetail(plId) {
   playlistSortMode = 'manual';
   $('btnPlSortAsc').classList.remove('active');
   $('btnPlSortDesc').classList.remove('active');
+  $('playlistSearchInput').value = '';
+  $('btnPlaylistSearchClear').style.display = 'none';
   $('playlistList').style.display = 'none';
   $('playlistDetail').style.display = 'block';
   $('playlistDetailName').textContent = pl.name;
@@ -933,6 +1006,16 @@ function renderPlaylistTracks(pl) {
   }
 
   let displayIds = [...pl.trackIds];
+
+  // 検索フィルター
+  const plSearchQ = ($('playlistSearchInput')?.value || '').trim().toLowerCase();
+  if (plSearchQ) {
+    displayIds = displayIds.filter(id => {
+      const t = state.tracks.find(t => t.id === id);
+      return t && t.title.toLowerCase().includes(plSearchQ);
+    });
+  }
+
   if (playlistSortMode === 'asc') {
     displayIds.sort((a, b) => {
       const ta = state.tracks.find(t => t.id === a)?.duration || 0;
@@ -1120,6 +1203,7 @@ async function onDriveSignedIn() {
     $('btnDriveReload').style.display = '';
 
     renderLibrary();
+    showLibrarySearch();
     renderPlaylistList();
 
   } catch (err) {

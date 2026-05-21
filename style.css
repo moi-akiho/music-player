@@ -907,8 +907,10 @@ input[type="range"]::-webkit-slider-thumb {
 .modal-range-wrap {
   display: flex;
   align-items: center;
-  gap: 4px;
-  margin-left: 4px;
+  gap: 6px;
+  padding: 10px 12px;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
 }
 
 .modal-range-input {
@@ -939,6 +941,15 @@ input[type="range"]::-webkit-slider-thumb {
   color: #fff;
   font-size: 13px;
   font-weight: 700;
+}
+
+.modal-range-clear {
+  padding: 5px 10px;
+  border-radius: 8px;
+  background: var(--bg3);
+  color: var(--text2);
+  font-size: 12px;
+  margin-left: auto;
 }
 
 .modal-select-bar {
@@ -974,18 +985,37 @@ input[type="range"]::-webkit-slider-thumb {
   border-radius: 12px;
 }
 
-.track-item.selected::before {
-  content: '✓';
-  position: absolute;
-  right: 48px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--accent2);
-  font-weight: 700;
-  font-size: 16px;
+.track-item { position: relative; }
+
+/* 選択チェックマーク */
+.track-select-check {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  background: var(--bg);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
 }
 
-.track-item { position: relative; }
+.track-item.selected .track-select-check {
+  background: var(--accent2);
+  border-color: var(--accent2);
+  color: #fff;
+}
+
+.track-item-art-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
 
 .modal .track-list { overflow-y: auto; padding: 8px; }
 

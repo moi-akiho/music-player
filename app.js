@@ -394,18 +394,22 @@ document.querySelectorAll('.view-btn').forEach(btn => {
 });
 
 // ===== アルバムモーダル =====
-let modalSelectMode = false;
 let modalSelectedIds = new Set();
 let modalCurrentTracks = [];
 
+function updateModalSelectionUI() {
+  const count = modalSelectedIds.size;
+  $('modalSelectCount').textContent = count > 0 ? `${count}曲選択中` : 'アイコンをタップして選択';
+  $('btnModalAddToPlaylist').disabled = count === 0;
+}
+
 function openAlbumModal(albumName, tracks) {
   modalCurrentTracks = tracks;
-  modalSelectMode = false;
   modalSelectedIds.clear();
-  $('btnModalSelect').classList.remove('active');
-  $('btnModalSelect').textContent = '選択';
-  $('modalSelectBar').style.display = 'none';
+  $('rangeFrom').value = '';
+  $('rangeTo').value = '';
   $('modalAlbumName').textContent = albumName;
+  updateModalSelectionUI();
   renderModalTrackList();
   $('albumModal').style.display = 'flex';
 }
@@ -414,64 +418,70 @@ function renderModalTrackList() {
   const list = $('modalTrackList');
   list.innerHTML = '';
   modalCurrentTracks.forEach((track, i) => {
-    const item = makeTrackItem(track, i + 1, () => {
-      if (modalSelectMode) {
-        if (modalSelectedIds.has(track.id)) modalSelectedIds.delete(track.id);
-        else modalSelectedIds.add(track.id);
-        item.classList.toggle('selected', modalSelectedIds.has(track.id));
-        $('modalSelectCount').textContent = `${modalSelectedIds.size}曲選択中`;
-        $('btnModalAddToPlaylist').disabled = modalSelectedIds.size === 0;
-      } else {
-        closeAlbumModal();
-        playOrLoad(track.id, modalCurrentTracks.map(t => t.id));
-      }
+    const isSelected = modalSelectedIds.has(track.id);
+    const item = document.createElement('div');
+    item.className = 'track-item' + (track.id === state.currentTrackId ? ' playing' : '') + (isSelected ? ' selected' : '');
+    item.dataset.trackId = track.id;
+    item.innerHTML = `
+      <div class="track-item-art-wrap" data-select="${track.id}">
+        <div class="track-select-check">${isSelected ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" width="12" height="12"><polyline points="20,6 9,17 4,12"/></svg>' : ''}</div>
+        <div class="track-num">${i + 1}</div>
+        <div class="track-item-art">${artHtml(track.picture)}</div>
+      </div>
+      <div class="track-item-info">
+        <div class="track-item-title">${esc(track.title)}</div>
+        <div class="track-item-sub">${esc(track.artist)} — ${esc(track.album)}</div>
+      </div>`;
+
+    // アイコン部分タップ → 選択
+    item.querySelector('.track-item-art-wrap').addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (modalSelectedIds.has(track.id)) modalSelectedIds.delete(track.id);
+      else modalSelectedIds.add(track.id);
+      item.classList.toggle('selected', modalSelectedIds.has(track.id));
+      const check = item.querySelector('.track-select-check');
+      check.innerHTML = modalSelectedIds.has(track.id)
+        ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" width="12" height="12"><polyline points="20,6 9,17 4,12"/></svg>'
+        : '';
+      updateModalSelectionUI();
     });
-    if (modalSelectMode && modalSelectedIds.has(track.id)) item.classList.add('selected');
+
+    // 曲名部分タップ → 再生
+    item.querySelector('.track-item-info').addEventListener('click', () => {
+      closeAlbumModal();
+      playOrLoad(track.id, modalCurrentTracks.map(t => t.id));
+    });
+
     list.appendChild(item);
   });
 }
 
-$('btnModalSelect').addEventListener('click', () => {
-  modalSelectMode = !modalSelectMode;
-  modalSelectedIds.clear();
-  $('btnModalSelect').classList.toggle('active', modalSelectMode);
-  $('btnModalSelect').textContent = modalSelectMode ? 'キャンセル' : '選択';
-  $('modalSelectBar').style.display = modalSelectMode ? 'flex' : 'none';
-  $('modalRangeWrap').style.display = modalSelectMode ? 'flex' : 'none';
-  $('modalSelectCount').textContent = '0曲選択中';
-  $('btnModalAddToPlaylist').disabled = true;
-  if (!modalSelectMode) {
-    $('rangeFrom').value = '';
-    $('rangeTo').value = '';
-  }
-  renderModalTrackList();
-});
-
+// 範囲選択
 $('btnRangeSelect').addEventListener('click', () => {
   const from = parseInt($('rangeFrom').value);
   const to   = parseInt($('rangeTo').value);
   const total = modalCurrentTracks.length;
-
   if (isNaN(from) || isNaN(to)) { showToast('数値を入力してください'); return; }
   const start = Math.max(1, Math.min(from, to));
   const end   = Math.min(total, Math.max(from, to));
-
-  for (let i = start - 1; i < end; i++) {
-    modalSelectedIds.add(modalCurrentTracks[i].id);
-  }
-  $('modalSelectCount').textContent = `${modalSelectedIds.size}曲選択中`;
-  $('btnModalAddToPlaylist').disabled = modalSelectedIds.size === 0;
+  for (let i = start - 1; i < end; i++) modalSelectedIds.add(modalCurrentTracks[i].id);
+  updateModalSelectionUI();
   renderModalTrackList();
 });
 
+// キャンセル（選択解除）
+$('btnRangeClear').addEventListener('click', () => {
+  modalSelectedIds.clear();
+  $('rangeFrom').value = '';
+  $('rangeTo').value = '';
+  updateModalSelectionUI();
+  renderModalTrackList();
+});
+
+// プレイリストに追加（追加後も選択状態を維持）
 $('btnModalAddToPlaylist').addEventListener('click', () => {
   if (!modalSelectedIds.size) return;
   openAddToPlaylistModal([...modalSelectedIds]);
-  modalSelectMode = false;
-  modalSelectedIds.clear();
-  $('btnModalSelect').classList.remove('active');
-  $('btnModalSelect').textContent = '選択';
-  $('modalSelectBar').style.display = 'none';
 });
 
 function closeAlbumModal() { $('albumModal').style.display = 'none'; }

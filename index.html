@@ -237,21 +237,23 @@
     <div class="modal">
       <div class="modal-header">
         <span id="modalAlbumName" class="modal-title"></span>
-        <button class="modal-select-btn" id="btnModalSelect">選択</button>
-        <div class="modal-range-wrap" id="modalRangeWrap" style="display:none;">
-          <input type="number" id="rangeFrom" min="1" class="modal-range-input" placeholder="1">
-          <span class="modal-range-sep">〜</span>
-          <input type="number" id="rangeTo" min="1" class="modal-range-input" placeholder="11">
-          <button class="modal-range-btn" id="btnRangeSelect">選択</button>
-        </div>
         <button class="modal-close" id="btnAlbumModalClose">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </div>
+      <!-- 範囲選択（常に表示） -->
+      <div class="modal-range-wrap" id="modalRangeWrap">
+        <input type="number" id="rangeFrom" min="1" class="modal-range-input" placeholder="1">
+        <span class="modal-range-sep">〜</span>
+        <input type="number" id="rangeTo" min="1" class="modal-range-input" placeholder="11">
+        <button class="modal-range-btn" id="btnRangeSelect">範囲選択</button>
+        <button class="modal-range-clear" id="btnRangeClear">キャンセル</button>
+      </div>
       <div id="modalTrackList" class="track-list"></div>
-      <div class="modal-select-bar" id="modalSelectBar" style="display:none;">
-        <span id="modalSelectCount">0曲選択中</span>
-        <button class="modal-add-btn" id="btnModalAddToPlaylist">プレイリストに追加</button>
+      <!-- 選択バー（常に表示、0曲のときはグレーアウト） -->
+      <div class="modal-select-bar" id="modalSelectBar">
+        <span id="modalSelectCount">アイコンをタップして選択</span>
+        <button class="modal-add-btn" id="btnModalAddToPlaylist" disabled>プレイリストに追加</button>
       </div>
     </div>
   </div>

@@ -1138,10 +1138,13 @@ async function initDrive() {
 
   await GDrive.init();
 
+  // まずログインボタンを表示しておく（自動ログイン成功時は隠れる）
+  showDriveLogin();
+
   // Googleにログイン済みなら自動接続を試みる（UIなし）
   GDrive.trySilentSignIn(
     () => onDriveSignedIn(),   // 成功 → 自動接続
-    () => showDriveLogin()     // 失敗 → ログインボタン表示
+    () => {}                   // 失敗 → すでにログインボタン表示中なので何もしない
   );
 }
 

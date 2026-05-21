@@ -30,6 +30,7 @@ const GDrive = {
         callback: (resp) => {
           if (resp.error) {
             this.isReady = false;
+            this.accessToken = null; // エラー時は無効なトークンを残さない
             this._onSignInFail && this._onSignInFail();
             return;
           }

@@ -161,14 +161,17 @@ const Waveform = {
     });
     document.addEventListener('mouseup', () => { this.isDragging = false; });
 
-    // タッチ
+    // タッチ（波形ドラッグ中は画面スクロールをキャンセルするため passive: false）
     this.wrap.addEventListener('touchstart', (e) => {
       this.isDragging = true;
       seek(getPos(e));
-    }, { passive: true });
+      e.preventDefault();
+    }, { passive: false });
     document.addEventListener('touchmove', (e) => {
-      if (this.isDragging) seek(getPos(e));
-    }, { passive: true });
+      if (!this.isDragging) return;
+      seek(getPos(e));
+      e.preventDefault(); // スクロールと同時発火を防止
+    }, { passive: false });
     document.addEventListener('touchend', () => { this.isDragging = false; });
   },
 
@@ -287,7 +290,8 @@ function renderLibrary() {
     });
   }
 
-  albumView.innerHTML = '';
+  // フォルダグリッド（DocumentFragment で一括挿入）
+  const albumFrag = document.createDocumentFragment();
   for (const [albumName, tracks] of entries) {
     const art = tracks.find(t => t.picture)?.picture || null;
     const card = document.createElement('div');
@@ -302,14 +306,19 @@ function renderLibrary() {
         <div class="album-card-count">${tracks.length}曲</div>
       </div>`;
     card.addEventListener('click', () => openAlbumModal(albumName, tracks));
-    albumView.appendChild(card);
+    albumFrag.appendChild(card);
   }
+  albumView.innerHTML = '';
+  albumView.appendChild(albumFrag);
 
-  // 全曲リスト
-  allView.innerHTML = '';
+  // 全曲リスト（DocumentFragment で一括挿入・リフロー最小化）
+  const allIds = state.tracks.map(t => t.id);
+  const allFrag = document.createDocumentFragment();
   state.tracks.forEach((track, i) => {
-    allView.appendChild(makeTrackItem(track, i + 1, () => playOrLoad(track.id, state.tracks.map(t => t.id))));
+    allFrag.appendChild(makeTrackItem(track, i + 1, () => playOrLoad(track.id, allIds)));
   });
+  allView.innerHTML = '';
+  allView.appendChild(allFrag);
 }
 
 function groupByAlbum(tracks) {
@@ -480,7 +489,14 @@ $('btnModalAddToPlaylist').addEventListener('click', () => {
   openAddToPlaylistModal([...modalSelectedIds]);
 });
 
-function closeAlbumModal() { $('albumModal').style.display = 'none'; }
+function closeAlbumModal() {
+  $('albumModal').style.display = 'none';
+  // 範囲選択フィールドをリセット（次回開いたとき前回の値が残らないよう）
+  $('rangeFrom').value = '';
+  $('rangeTo').value = '';
+  modalSelectedIds.clear();
+  updateModalSelectionUI();
+}
 $('btnAlbumModalClose').addEventListener('click', closeAlbumModal);
 $('albumModal').addEventListener('click', (e) => { if (e.target === $('albumModal')) closeAlbumModal(); });
 
@@ -798,9 +814,11 @@ $('speedSlider').addEventListener('input', () => {
 $('speedInput').addEventListener('input', () => {
   let val = parseInt($('speedInput').value);
   if (isNaN(val)) return;
-  val = Math.max(50, Math.min(200, val));
-  setSpeed(val / 100);
-  $('speedSlider').value = val;
+  // 入力中もリアルタイムでスライダーと速度に反映（50〜200の範囲内のみ）
+  if (val >= 50 && val <= 200) {
+    setSpeed(val / 100);
+    $('speedSlider').value = val;
+  }
 });
 
 $('speedInput').addEventListener('change', () => {
@@ -998,6 +1016,7 @@ function openPlaylistDetail(plId) {
 function renderPlaylistTracks(pl) {
   const container = $('playlistTracks');
   container.innerHTML = '';
+  container.scrollTop = 0; // 検索・並び替え後もスクロール位置をリセット
 
   if (!pl.trackIds.length) {
     container.innerHTML = `<div class="empty-state">

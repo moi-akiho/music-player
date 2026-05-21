@@ -424,7 +424,6 @@ function renderModalTrackList() {
     item.dataset.trackId = track.id;
     item.innerHTML = `
       <div class="track-item-art-wrap" data-select="${track.id}">
-        <div class="track-select-check">${isSelected ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" width="12" height="12"><polyline points="20,6 9,17 4,12"/></svg>' : ''}</div>
         <div class="track-num">${i + 1}</div>
         <div class="track-item-art">${artHtml(track.picture)}</div>
       </div>
@@ -439,10 +438,6 @@ function renderModalTrackList() {
       if (modalSelectedIds.has(track.id)) modalSelectedIds.delete(track.id);
       else modalSelectedIds.add(track.id);
       item.classList.toggle('selected', modalSelectedIds.has(track.id));
-      const check = item.querySelector('.track-select-check');
-      check.innerHTML = modalSelectedIds.has(track.id)
-        ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" width="12" height="12"><polyline points="20,6 9,17 4,12"/></svg>'
-        : '';
       updateModalSelectionUI();
     });
 

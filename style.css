@@ -711,6 +711,19 @@ input[type="range"]::-webkit-slider-thumb {
   margin-top: 2px;
 }
 
+.track-item-edit {
+  padding: 8px;
+  color: var(--text2);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  opacity: 0.6;
+}
+
+.track-item-edit:active { opacity: 1; color: var(--accent2); }
+
+.track-item-edit svg { width: 16px; height: 16px; }
+
 .track-item-menu {
   padding: 8px;
   color: var(--text2);

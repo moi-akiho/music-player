@@ -500,12 +500,17 @@ function makeTrackItem(track, num, onPlay) {
       <div class="track-item-title">${esc(track.title)}</div>
       <div class="track-item-sub">${esc(track.artist)} — ${esc(track.album)}</div>
     </div>
+    <button class="track-item-edit" title="曲名を編集">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+    </button>
     <button class="track-item-menu" title="メニュー">
       <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
     </button>`;
 
   item.addEventListener('click', (e) => {
-    if (e.target.closest('.track-item-menu')) {
+    if (e.target.closest('.track-item-edit')) {
+      openRenameModal(track.id);
+    } else if (e.target.closest('.track-item-menu')) {
       openCtxMenu(track.id, e);
     } else {
       onPlay();

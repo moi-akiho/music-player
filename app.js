@@ -771,6 +771,19 @@ function shuffleArray(arr) {
   return arr;
 }
 
+// ===== 曲の長さを自動保存（ソート用）=====
+// メタデータ読み込み完了時に duration を state に保存する
+audio.addEventListener('loadedmetadata', () => {
+  if (!audio.duration || isNaN(audio.duration)) return;
+  const track = state.tracks.find(t => t.id === state.currentTrackId);
+  if (!track) return;
+  const newDuration = Math.round(audio.duration);
+  if (track.duration !== newDuration) {
+    track.duration = newDuration;
+    saveMeta(); // 次回起動時にも使えるよう保存
+  }
+});
+
 // ===== シーク（波形と同期） =====
 audio.addEventListener('timeupdate', () => {
   const dur = audio.duration || 0;
@@ -967,12 +980,25 @@ function renderPlaylistList() {
 let playlistSortMode = 'manual'; // 'manual' | 'asc' | 'desc'
 let _sortableInstance = null;   // Sortableインスタンスを保持（再描画前に破棄するため）
 
+function checkDurationToast(pl) {
+  // 長さ未取得の曲がある場合は案内を表示
+  const unknown = pl.trackIds.filter(id => {
+    const t = state.tracks.find(t => t.id === id);
+    return !t || !t.duration;
+  }).length;
+  if (unknown > 0) {
+    showToast(`${unknown}曲は長さ未取得です（一度再生すると正確に並びます）`);
+  }
+}
+
 $('btnPlSortAsc').addEventListener('click', () => {
   playlistSortMode = playlistSortMode === 'asc' ? 'manual' : 'asc';
   $('btnPlSortAsc').classList.toggle('active', playlistSortMode === 'asc');
   $('btnPlSortDesc').classList.remove('active');
   const pl = state.playlists.find(p => p.id === state.currentPlaylistId);
-  if (pl) renderPlaylistTracks(pl);
+  if (!pl) return;
+  if (playlistSortMode === 'asc') checkDurationToast(pl);
+  renderPlaylistTracks(pl);
 });
 
 $('btnPlSortDesc').addEventListener('click', () => {
@@ -980,7 +1006,9 @@ $('btnPlSortDesc').addEventListener('click', () => {
   $('btnPlSortDesc').classList.toggle('active', playlistSortMode === 'desc');
   $('btnPlSortAsc').classList.remove('active');
   const pl = state.playlists.find(p => p.id === state.currentPlaylistId);
-  if (pl) renderPlaylistTracks(pl);
+  if (!pl) return;
+  if (playlistSortMode === 'desc') checkDurationToast(pl);
+  renderPlaylistTracks(pl);
 });
 
 // ===== プレイリスト内検索 =====
@@ -1091,6 +1119,10 @@ function renderPlaylistTracks(pl) {
     animation: 150,
     ghostClass: 'sortable-ghost',
     onEnd(evt) {
+      // 手動ドラッグ → ソートモードを手動に戻す（ソートと競合しないよう）
+      playlistSortMode = 'manual';
+      $('btnPlSortAsc').classList.remove('active');
+      $('btnPlSortDesc').classList.remove('active');
       // displayIds（表示順）を正として並べ替え（クロージャ変数を直接更新）
       const movedId = displayIds.splice(evt.oldIndex, 1)[0];
       displayIds.splice(evt.newIndex, 0, movedId);
@@ -1108,7 +1140,8 @@ $('btnPlaylistBack').addEventListener('click', renderPlaylistList);
 $('btnPlayPlaylist').addEventListener('click', () => {
   const pl = state.playlists.find(p => p.id === state.currentPlaylistId);
   if (!pl || !pl.trackIds.length) return;
-  playTrack(pl.trackIds[0], pl.trackIds);
+  // playTrack ではなく playOrLoad を使う（Drive曲はURLが未取得のため）
+  playOrLoad(pl.trackIds[0], pl.trackIds);
   document.querySelector('.tab-btn[data-tab="player"]').click();
 });
 
@@ -1199,6 +1232,13 @@ async function onDriveSignedIn() {
   $('driveLoginPanel').style.display = 'none';
   $('driveLoadingPanel').style.display = '';
   $('libraryHeader').style.display = 'none';
+
+  // トークン切れ時のコールバックを設定（401発生 → ログイン画面に戻す）
+  GDrive._onTokenExpired = () => {
+    driveReady = false;
+    showDriveLogin();
+    showToast('セッションが切れました。再ログインしてください');
+  };
 
   try {
     // Drive からプレイリストデータ読み込み
@@ -1343,7 +1383,14 @@ async function playDriveTrack(trackId, queueIds) {
 
   } catch (err) {
     $('trackLoadingOverlay').style.display = 'none';
-    showToast('読み込みに失敗しました');
+    // 401 はトークン切れ → ログイン誘導、それ以外は汎用エラー
+    if (String(err).includes('401')) {
+      driveReady = false;
+      showDriveLogin();
+      showToast('セッションが切れました。再ログインしてください');
+    } else {
+      showToast('音楽ファイルを読み込めませんでした');
+    }
   }
 }
 

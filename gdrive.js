@@ -12,6 +12,7 @@ const GDrive = {
   tokenClient: null,
   accessToken: null,
   isReady: false,
+  _refreshTimer: null,
 
   // ===== 初期化 =====
   init() {
@@ -36,6 +37,7 @@ const GDrive = {
           }
           this.accessToken = resp.access_token;
           this.isReady = true;
+          this._scheduleTokenRefresh(); // 45分後に自動更新をスケジュール
           this._onSignedIn && this._onSignedIn();
         },
       });
@@ -268,14 +270,33 @@ const GDrive = {
     return data.files?.[0] || null;
   },
 
-  // ===== 共通 fetch（Authヘッダー付き） =====
-  _fetch(url, options = {}) {
-    return fetch(url, {
+  // ===== トークン自動更新スケジュール =====
+  // アクセストークンの有効期限は約1時間。45分後にサイレント再取得する
+  _scheduleTokenRefresh() {
+    clearTimeout(this._refreshTimer);
+    this._refreshTimer = setTimeout(() => {
+      if (!this.isReady || !this.tokenClient) return;
+      try {
+        this.tokenClient.requestAccessToken({ prompt: '' });
+      } catch { /* 失敗時は次の操作で401になったタイミングで対処 */ }
+    }, 45 * 60 * 1000); // 45分
+  },
+
+  // ===== 共通 fetch（Authヘッダー付き・401検知）=====
+  async _fetch(url, options = {}) {
+    const res = await fetch(url, {
       ...options,
       headers: {
         ...(options.headers || {}),
         Authorization: `Bearer ${this.accessToken}`,
       },
     });
+    // トークン切れ（401）を検知してアプリ側に通知
+    if (res.status === 401) {
+      this.isReady = false;
+      this.accessToken = null;
+      this._onTokenExpired && this._onTokenExpired();
+    }
+    return res;
   },
 };

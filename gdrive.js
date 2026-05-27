@@ -92,7 +92,7 @@ const GDrive = {
     do {
       const params = new URLSearchParams({
         q: "mimeType contains 'audio/' and trashed = false",
-        fields: 'nextPageToken,files(id,name,size,mimeType,parents,createdTime)',
+        fields: 'nextPageToken,files(id,name,size,mimeType,parents,createdTime,videoMediaMetadata)',
         pageSize: '200',
         orderBy: 'name',
       });

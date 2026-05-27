@@ -1270,6 +1270,14 @@ async function onDriveSignedIn() {
       const cached = getCachedMeta(f.id);
       const parentId = f.parents?.[0];
       const folderName = parentId ? (folderNames[parentId] || '不明') : '不明';
+
+      // Drive API から曲の長さを取得（videoMediaMetadata.durationMillis）
+      // キャッシュ済みの方が正確な場合はそちらを優先
+      const driveDuration = f.videoMediaMetadata?.durationMillis
+        ? Math.round(f.videoMediaMetadata.durationMillis / 1000)
+        : 0;
+      const duration = cached?.duration || driveDuration;
+
       return {
         id: f.id,
         driveId: f.id,
@@ -1278,7 +1286,7 @@ async function onDriveSignedIn() {
         artist: cached?.artist || '',
         album: folderName,
         picture: cached?.picture || null,
-        duration: cached?.duration || 0,
+        duration,
         createdTime: f.createdTime || '',
       };
     });

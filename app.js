@@ -1192,14 +1192,22 @@ async function initDrive() {
 
   await GDrive.init();
 
-  // まずログインボタンを表示しておく（自動ログイン成功時は隠れる）
-  showDriveLogin();
+  // 自動接続を試みている間はスピナーを表示（いきなりログインボタンを出さない）
+  showDriveConnecting();
 
-  // Googleにログイン済みなら自動接続を試みる（UIなし）
+  // Googleにログイン済みなら自動接続（成功すればそのままライブラリへ）
   GDrive.trySilentSignIn(
-    () => onDriveSignedIn(),   // 成功 → 自動接続
-    () => {}                   // 失敗 → すでにログインボタン表示中なので何もしない
+    () => onDriveSignedIn(),  // 成功 → ライブラリ表示
+    () => showDriveLogin()    // 失敗したときだけログインボタンを表示
   );
+}
+
+// 自動接続確認中のスピナー表示
+function showDriveConnecting() {
+  $('driveLoginPanel').style.display = 'none';
+  $('libraryHeader').style.display = 'none';
+  $('driveLoadingPanel').style.display = '';
+  $('driveLoadingText').textContent = 'Googleアカウントに再接続中…';
 }
 
 function showDriveLogin() {

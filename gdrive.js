@@ -59,8 +59,8 @@ const GDrive = {
     this._onSignedIn = () => finish(true);
     this._onSignInFail = () => finish(false);
 
-    // 5秒以内にコールバックが来なければ失敗扱い
-    setTimeout(() => finish(false), 5000);
+    // 10秒以内にコールバックが来なければ失敗扱い（モバイル回線考慮）
+    setTimeout(() => finish(false), 10000);
 
     try {
       this.tokenClient.requestAccessToken({ prompt: '' });

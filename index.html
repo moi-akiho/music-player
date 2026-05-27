@@ -5,6 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>AKIHO Music</title>
   <link rel="stylesheet" href="style.css">
+  <!-- PWA設定 -->
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="AKIHO Music">
+  <meta name="theme-color" content="#a67c52">
 </head>
 <body>
 
@@ -177,7 +185,7 @@
     <!-- 読み込み中 -->
     <div id="driveLoadingPanel" style="display:none;" class="loading-panel">
       <div class="loading-spinner"></div>
-      <div class="loading-text">音楽ファイルを読み込んでいます…</div>
+      <div class="loading-text" id="driveLoadingText">音楽ファイルを読み込んでいます…</div>
     </div>
 
     <!-- ライブラリ検索バー -->
@@ -367,5 +375,11 @@
   <script src="id3.js"></script>
   <script src="gdrive.js"></script>
   <script src="app.js"></script>
+  <!-- Service Worker 登録（PWAのオフライン対応・アプリ化） -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js').catch(() => { /* 失敗は無視 */ });
+    }
+  </script>
 </body>
 </html>

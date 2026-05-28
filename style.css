@@ -711,6 +711,16 @@ input[type="range"]::-webkit-slider-thumb {
   margin-top: 2px;
 }
 
+.track-duration {
+  margin-left: 6px;
+  padding: 1px 5px;
+  background: var(--border);
+  border-radius: 4px;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
 .track-item-edit {
   padding: 8px;
   color: var(--text2);

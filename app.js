@@ -439,7 +439,10 @@ function renderModalTrackList() {
       </div>
       <div class="track-item-info">
         <div class="track-item-title">${esc(track.title)}</div>
-        <div class="track-item-sub">${esc(track.artist)} — ${esc(track.album)}</div>
+        <div class="track-item-sub">
+          ${esc(track.artist)} — ${esc(track.album)}
+          ${track.duration ? `<span class="track-duration">${formatTime(track.duration)}</span>` : ''}
+        </div>
       </div>`;
 
     // アイコン部分タップ → 選択
@@ -510,7 +513,10 @@ function makeTrackItem(track, num, onPlay) {
     <div class="track-item-art">${artHtml(track.picture)}</div>
     <div class="track-item-info">
       <div class="track-item-title">${esc(track.title)}</div>
-      <div class="track-item-sub">${esc(track.artist)} — ${esc(track.album)}</div>
+      <div class="track-item-sub">
+        ${esc(track.artist)} — ${esc(track.album)}
+        ${track.duration ? `<span class="track-duration">${formatTime(track.duration)}</span>` : ''}
+      </div>
     </div>
     <button class="track-item-edit" title="曲名を編集">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
@@ -1297,11 +1303,64 @@ async function onDriveSignedIn() {
     showLibrarySearch();
     renderPlaylistList();
 
+    // バックグラウンドでキャッシュ済み曲のdurationを読み込む（ソート精度向上）
+    loadDurationsFromCache();
+
   } catch (err) {
     $('driveLoadingPanel').style.display = 'none';
     showToast('読み込みエラー。再ログインしてください');
     showDriveLogin();
   }
+}
+
+// ===== キャッシュ済み曲からdurationをバックグラウンドで読み込む =====
+async function loadDurationsFromCache() {
+  if (!window.caches) return;
+  try {
+    const cache = await caches.open(GDrive.CACHE_NAME);
+    const needsDuration = state.tracks.filter(t => !t.duration);
+    if (!needsDuration.length) return;
+
+    let updatedCount = 0;
+
+    for (const track of needsDuration) {
+      // キャッシュにあるか確認
+      const cached = await cache.match(`https://drive-cache/${track.driveId}`);
+      if (!cached) continue;
+
+      const blob = await cached.blob();
+      const blobUrl = URL.createObjectURL(blob);
+
+      // Audio要素でメタデータだけ読む（再生しない）
+      await new Promise(resolve => {
+        const audio = new Audio();
+        audio.preload = 'metadata';
+        const cleanup = () => { URL.revokeObjectURL(blobUrl); resolve(); };
+
+        audio.addEventListener('loadedmetadata', () => {
+          if (audio.duration && isFinite(audio.duration) && audio.duration > 0) {
+            track.duration = Math.round(audio.duration);
+            updatedCount++;
+          }
+          cleanup();
+        }, { once: true });
+
+        audio.addEventListener('error', cleanup, { once: true });
+        setTimeout(cleanup, 5000); // 5秒でタイムアウト
+        audio.src = blobUrl;
+      });
+    }
+
+    if (updatedCount > 0) {
+      saveMeta();
+      renderLibrary(); // 長さ表示を更新
+      // プレイリスト詳細が開いていれば再描画
+      if ($('playlistDetail').style.display !== 'none') {
+        const pl = state.playlists.find(p => p.id === state.currentPlaylistId);
+        if (pl) renderPlaylistTracks(pl);
+      }
+    }
+  } catch { /* 無視 */ }
 }
 
 // Drive ログインボタン

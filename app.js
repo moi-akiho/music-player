@@ -854,6 +854,11 @@ let fadeoutEnabled = false;
 let fadeIntervalId = null;
 const FADE_DUR_SEC = 5; // 5秒かけてフェード
 
+// ===== プレイリスト個別フェード設定 =====
+let _activePlaylistFade = null;   // { fadeAfterSec, silenceEveryN, silenceDurSec } | null
+let _playlistSongCounter = 0;     // 現在のプレイリスト再生でフェード完了した曲数
+let _onFadeComplete = null;       // フェード完了時のコールバック（1回限り）
+
 function stopFadeTimer() {
   clearInterval(fadeIntervalId);
   fadeIntervalId = null;
@@ -873,7 +878,11 @@ function startFadeMonitor(totalSec) {
 
     if (remaining <= 0) {
       audio.pause();
+      // コールバックを先に退避してからstopFadeTimer（再帰防止）
+      const cb = _onFadeComplete;
+      _onFadeComplete = null;
       stopFadeTimer();
+      cb && cb();
     } else if (remaining <= FADE_DUR_SEC) {
       audio.volume = Math.max(0, remaining / FADE_DUR_SEC);
       $('fadeoutStatus').textContent = 'フェード中…';
@@ -904,7 +913,18 @@ $('btnFadeout').addEventListener('click', () => {
 
 // 曲が変わったらフェードタイマーをリセット
 audio.addEventListener('play', () => {
-  if (fadeoutEnabled) {
+  if (_activePlaylistFade) {
+    // プレイリスト個別フェード設定が有効 → 毎曲自動適用
+    const totalSec = _activePlaylistFade.fadeAfterSec;
+    // フェードアウトUIも同期させる（視覚的フィードバック）
+    $('fadeMinutes').value = Math.floor(totalSec / 60);
+    $('fadeSeconds').value = totalSec % 60;
+    fadeoutEnabled = true;
+    $('btnFadeout').textContent = 'キャンセル';
+    $('btnFadeout').classList.add('active');
+    startFadeMonitor(totalSec);
+    _onFadeComplete = _makePlaylistFadeCompleteCallback();
+  } else if (fadeoutEnabled) {
     const min = Math.max(0, parseInt($('fadeMinutes').value) || 0);
     const sec = Math.max(0, parseInt($('fadeSeconds').value) || 0);
     startFadeMonitor(min * 60 + sec);
@@ -914,6 +934,40 @@ audio.addEventListener('play', () => {
 function setSpeed(spd) {
   state.speed = spd;
   audio.playbackRate = spd;
+}
+
+// ===== プレイリストフェード完了コールバック生成 =====
+function _makePlaylistFadeCompleteCallback() {
+  return () => {
+    if (!_activePlaylistFade) return;
+    _playlistSongCounter++;
+
+    const fs = _activePlaylistFade;
+    const shouldSilence = fs.silenceEveryN > 0 && (_playlistSongCounter % fs.silenceEveryN === 0);
+
+    const doNext = () => {
+      if (!state.queue.length) return;
+      const next = state.queueIndex + 1;
+      if (next < state.queue.length) {
+        state.queueIndex = next;
+        playOrLoad(state.queue[next], null);
+      } else {
+        // キュー終了
+        _activePlaylistFade = null;
+        _playlistSongCounter = 0;
+        state.isPlaying = false;
+        updatePlayBtn();
+      }
+    };
+
+    if (shouldSilence) {
+      // 空白時間後に次の曲へ
+      showToast(`${fs.silenceDurSec}秒の空白…`);
+      setTimeout(doNext, fs.silenceDurSec * 1000);
+    } else {
+      doNext();
+    }
+  };
 }
 
 // ===== プレイリスト =====
@@ -1044,8 +1098,88 @@ function openPlaylistDetail(plId) {
   $('playlistList').style.display = 'none';
   $('playlistDetail').style.display = 'block';
   $('playlistDetailName').textContent = pl.name;
+  updatePlaylistFadeIndicator(pl);
   renderPlaylistTracks(pl);
 }
+
+// ===== プレイリストフェード設定インジケーター更新 =====
+function updatePlaylistFadeIndicator(pl) {
+  const indicator = $('plFadeIndicator');
+  if (!pl.fadeSettings?.enabled) {
+    indicator.style.display = 'none';
+    return;
+  }
+  const fs = pl.fadeSettings;
+  const totalSec = fs.fadeAfterSec;
+  const min = Math.floor(totalSec / 60);
+  const sec = totalSec % 60;
+  const timeStr = min > 0
+    ? (sec > 0 ? `${min}分${sec}秒` : `${min}分`)
+    : `${sec}秒`;
+  let text = `⏱ ${timeStr}でフェードアウト`;
+  if (fs.silenceEveryN > 0) {
+    text += ` ・ ${fs.silenceEveryN}曲ごとに${fs.silenceDurSec}秒の空白`;
+  }
+  indicator.textContent = text;
+  indicator.style.display = '';
+}
+
+// ===== プレイリストフェード設定モーダル =====
+$('btnPlaylistFadeSettings').addEventListener('click', () => {
+  const pl = state.playlists.find(p => p.id === state.currentPlaylistId);
+  if (!pl) return;
+
+  const fs = pl.fadeSettings || {};
+  $('plFadeEnabled').checked = fs.enabled || false;
+
+  const totalSec = fs.fadeAfterSec != null ? fs.fadeAfterSec : 75; // デフォルト1分15秒
+  $('plFadeMinutes').value = Math.floor(totalSec / 60);
+  $('plFadeSeconds').value = totalSec % 60;
+  $('plSilenceEveryN').value = fs.silenceEveryN != null ? fs.silenceEveryN : 0;
+  $('plSilenceDurSec').value = fs.silenceDurSec != null ? fs.silenceDurSec : 5;
+
+  _syncFadeSettingsRows();
+  $('playlistFadeModal').style.display = 'flex';
+});
+
+function _syncFadeSettingsRows() {
+  $('plFadeSettingsRows').style.display = $('plFadeEnabled').checked ? '' : 'none';
+}
+
+$('plFadeEnabled').addEventListener('change', _syncFadeSettingsRows);
+
+function closePlaylistFadeModal() {
+  $('playlistFadeModal').style.display = 'none';
+}
+
+$('btnPlaylistFadeClose').addEventListener('click', closePlaylistFadeModal);
+$('btnPlaylistFadeCancel').addEventListener('click', closePlaylistFadeModal);
+$('playlistFadeModal').addEventListener('click', (e) => {
+  if (e.target === $('playlistFadeModal')) closePlaylistFadeModal();
+});
+
+$('btnPlaylistFadeSave').addEventListener('click', () => {
+  const pl = state.playlists.find(p => p.id === state.currentPlaylistId);
+  if (!pl) return;
+
+  const enabled = $('plFadeEnabled').checked;
+  const min = Math.max(0, parseInt($('plFadeMinutes').value) || 0);
+  const sec = Math.max(0, Math.min(59, parseInt($('plFadeSeconds').value) || 0));
+  const fadeAfterSec = min * 60 + sec;
+  const silenceEveryN = Math.max(0, parseInt($('plSilenceEveryN').value) || 0);
+  const silenceDurSec = Math.max(1, parseInt($('plSilenceDurSec').value) || 5);
+
+  if (enabled && fadeAfterSec <= 0) {
+    showToast('フェードアウトの時間を設定してください');
+    return;
+  }
+
+  pl.fadeSettings = { enabled, fadeAfterSec, silenceEveryN, silenceDurSec };
+  saveMeta();
+  closePlaylistFadeModal();
+  updatePlaylistFadeIndicator(pl);
+  showToast(enabled ? 'フェード設定を保存しました' : 'フェード設定を無効にしました');
+});
 
 function renderPlaylistTracks(pl) {
   const container = $('playlistTracks');
@@ -1146,6 +1280,20 @@ $('btnPlaylistBack').addEventListener('click', renderPlaylistList);
 $('btnPlayPlaylist').addEventListener('click', () => {
   const pl = state.playlists.find(p => p.id === state.currentPlaylistId);
   if (!pl || !pl.trackIds.length) return;
+
+  // プレイリスト個別フェード設定を適用
+  if (pl.fadeSettings?.enabled && pl.fadeSettings.fadeAfterSec > 0) {
+    _activePlaylistFade = { ...pl.fadeSettings };
+    _playlistSongCounter = 0;
+    _onFadeComplete = null;
+  } else {
+    _activePlaylistFade = null;
+    _playlistSongCounter = 0;
+    _onFadeComplete = null;
+    // 手動フェードが有効だった場合もリセット（プレイリスト再生は設定優先）
+    if (fadeoutEnabled) stopFadeTimer();
+  }
+
   // playTrack ではなく playOrLoad を使う（Drive曲はURLが未取得のため）
   playOrLoad(pl.trackIds[0], pl.trackIds);
   document.querySelector('.tab-btn[data-tab="player"]').click();

@@ -223,9 +223,15 @@
           <button class="pl-sort-btn" id="btnPlSortDesc" title="長い順（降順）">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19,12 12,19 5,12"/></svg>長
           </button>
+          <!-- フェード設定ボタン -->
+          <button class="pl-sort-btn" id="btnPlaylistFadeSettings" title="フェード設定">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>フェード
+          </button>
           <button class="play-all-btn" id="btnPlayPlaylist">▶ 再生</button>
         </div>
       </div>
+      <!-- フェード設定が有効なときのインジケーター -->
+      <div id="plFadeIndicator" class="pl-fade-indicator" style="display:none;"></div>
       <!-- プレイリスト内検索バー -->
       <div class="search-bar-wrap">
         <div class="search-bar">
@@ -292,6 +298,48 @@
         </button>
       </div>
       <div id="addToPlaylistList" class="playlist-select-list"></div>
+    </div>
+  </div>
+
+  <!-- モーダル: プレイリストフェード設定 -->
+  <div class="modal-overlay" id="playlistFadeModal" style="display:none;">
+    <div class="modal modal-small" style="max-width:380px;">
+      <div class="modal-header">
+        <span class="modal-title">フェード設定</span>
+        <button class="modal-close" id="btnPlaylistFadeClose">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="playlist-fade-body">
+        <label class="fade-toggle-row">
+          <span>フェード設定を有効にする</span>
+          <input type="checkbox" id="plFadeEnabled" class="fade-checkbox">
+        </label>
+        <div id="plFadeSettingsRows" class="fade-settings-rows">
+          <div class="fade-row">
+            <div class="fade-row-label">フェードアウト開始タイミング</div>
+            <div class="fade-row-inputs">
+              <input type="number" id="plFadeMinutes" min="0" max="99" value="1" class="fade-input">
+              <span class="fade-sep">分</span>
+              <input type="number" id="plFadeSeconds" min="0" max="59" value="15" class="fade-input">
+              <span class="fade-sep">秒後</span>
+            </div>
+          </div>
+          <div class="fade-row">
+            <div class="fade-row-label">曲の間に空白を入れる（0 = 無効）</div>
+            <div class="fade-row-inputs">
+              <input type="number" id="plSilenceEveryN" min="0" max="99" value="0" class="fade-input">
+              <span class="fade-sep">曲ごとに</span>
+              <input type="number" id="plSilenceDurSec" min="1" max="60" value="5" class="fade-input">
+              <span class="fade-sep">秒の空白</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="modal-btn-cancel" id="btnPlaylistFadeCancel">キャンセル</button>
+        <button class="modal-btn-ok" id="btnPlaylistFadeSave">保存</button>
+      </div>
     </div>
   </div>
 

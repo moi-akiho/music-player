@@ -1331,6 +1331,95 @@ input[type="range"]::-webkit-slider-thumb {
   color: var(--accent2);
 }
 
+/* ===== プレイリストフェード設定 ===== */
+.pl-fade-indicator {
+  background: rgba(166,124,82,0.10);
+  border: 1px solid rgba(166,124,82,0.30);
+  border-radius: 8px;
+  padding: 7px 12px;
+  font-size: 12px;
+  color: var(--accent2);
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.playlist-fade-body {
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.fade-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  gap: 12px;
+}
+
+.fade-checkbox {
+  width: 22px;
+  height: 22px;
+  accent-color: var(--accent2);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.fade-settings-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.fade-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fade-row-label {
+  font-size: 12px;
+  color: var(--text2);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.fade-row-inputs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.fade-input {
+  width: 54px;
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 700;
+  text-align: center;
+  padding: 8px 4px;
+  -moz-appearance: textfield;
+}
+
+.fade-input::-webkit-inner-spin-button,
+.fade-input::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+.fade-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.fade-sep {
+  font-size: 13px;
+  color: var(--text2);
+}
+
 /* ===== タブレット横向き ===== */
 @media (orientation: landscape) and (min-height: 500px) {
   .now-playing {
